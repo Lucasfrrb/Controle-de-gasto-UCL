@@ -33,7 +33,7 @@ def definir_renda_mensal():
         try:
             renda_mensal = float(valor)
             salvar_gastos()
-            print("✅ Renda mensal atualizada!")
+            print("Renda mensal atualizada!")
             break
         except ValueError:
             print("Por favor, insira um valor válido!")
@@ -47,7 +47,7 @@ def visualizar_gastos(mes):
     if mes not in gastos or not gastos[mes]:
         print("Nenhum gasto registrado ainda.")
         return
-    print(f"\n📜 Lista de Gastos ({mes}):")
+    print(f"\nLista de Gastos ({mes}):")
     for i, gasto in enumerate(gastos[mes]):
         tipo = "(Fixo)" if gasto["fixo"] else "(Variável)"
         retorno = f"| Retorno esperado: R$ {gasto['retorno']:.2f}" if gasto["retorno"] > 0 else ""
@@ -77,7 +77,7 @@ def adicionar_gasto(mes):
         gastos[mes] = []
     gastos[mes].append({"descricao": descricao, "valor": valor, "fixo": fixo, "retorno": retorno_valor})
     salvar_gastos()
-    print("✅ Gasto adicionado com sucesso!")
+    print("Gasto adicionado com sucesso!")
 
 def remover_gasto(mes):
     visualizar_gastos(mes)
@@ -88,7 +88,7 @@ def remover_gasto(mes):
         if 0 <= indice < len(gastos[mes]):
             del gastos[mes][indice]
             salvar_gastos()
-            print("✅ Gasto removido com sucesso!")
+            print("Gasto removido com sucesso!")
         else:
             print("Número inválido!")
     except ValueError:
