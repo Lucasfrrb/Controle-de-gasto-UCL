@@ -1,172 +1,137 @@
-from tkinter import *
+import tkinter as tk
 from tkinter import messagebox
+from PIL import Image, ImageTk
+import requests
+from io import BytesIO
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import geocoder
 
-'''Esstrutura da Janela'''
+# === CONFIGURAÇÕES ===
+API_KEY = 'f735300abb8fadb243af1cbcba5d4d81'
 
-calculadora = Tk()
-calculadora.title("Calculadora")
-calculadora.geometry("475x470")
-calculadora.resizable(False, False)
-calculadora.config(bg="gray") 
+# Detectar localização
+g = geocoder.ip('me')
+cidade = g.city
+pais = g.country
+CIDADE = f"{cidade},{pais}"
 
+URL_ATUAL = f"http://api.openweathermap.org/data/2.5/weather?q={CIDADE}&appid={API_KEY}&units=metric&lang=pt_br"
+URL_FORECAST = f"http://api.openweathermap.org/data/2.5/forecast?q={CIDADE}&appid={API_KEY}&units=metric&lang=pt_br"
 
-'''Funcoes'''
+# === JANELA PRINCIPAL ===
+tela = tk.Tk()
+tela.title("Water Diary - Previsão do Tempo")
+tela.geometry("900x700")
+tela.configure(bg="white")
+tela.attributes('-fullscreen', True)
+def sair_fullscreen(event=None):
+    tela.attributes('-fullscreen', False)
+def fulltela(evente=None):
+    tela.attributes('-fullscreen', True)
 
-def BTNumeros(numero):
-    PegaNumero = CampoNumeros.get()
-    CampoNumeros.delete(0, END)
-    CampoNumeros.insert(0, str(PegaNumero) + str(numero))
-    return
-def soma():
-    PegaNumero = CampoNumeros.get()
-    global PrimeiroNumero
-    global operacao
-    operacao = 'soma'
-    PrimeiroNumero = float(PegaNumero)
-    CampoNumeros.delete(0, END)
-    return
-def subtracao():
-    PegaNumero = CampoNumeros.get()
-    global PrimeiroNumero
-    global operacao
-    operacao = 'subtracao'
-    PrimeiroNumero = float(PegaNumero)
-    CampoNumeros.delete(0, END)
-    return
-def multiplicacao():
-    PegaNumero = CampoNumeros.get()
-    global PrimeiroNumero
-    global operacao
-    operacao = 'multiplicacao'
-    PrimeiroNumero = float(PegaNumero)
-    CampoNumeros.delete(0, END)
-    return
-def divisao():
-    PegaNumero = CampoNumeros.get()
-    global PrimeiroNumero
-    global operacao
-    operacao = 'divisao'
-    PrimeiroNumero = float(PegaNumero)
-    CampoNumeros.delete(0, END)
-    return
-def porcentagem():
-    PegaNumero = CampoNumeros.get()
-    global PrimeiroNumero
-    global operacao
-    operacao = 'porcentagem'
-    PrimeiroNumero = float(PegaNumero)
-    CampoNumeros.delete(0, END)
-    return
-def potencia():
-    PegaNumero = CampoNumeros.get()
-    global PrimeiroNumero
-    global operacao
-    operacao = 'potencia'
-    PrimeiroNumero = float(PegaNumero)
-    CampoNumeros.delete(0, END)
-    return
-def raiz():
-    PegaNumero = CampoNumeros.get()
-    global PrimeiroNumero
-    global operacao
-    operacao = 'raiz'
-    PrimeiroNumero = float(PegaNumero)
-    CampoNumeros.delete(0, END)
-    return
-def igual():
-    PegaNumero = CampoNumeros.get()
-    CampoNumeros.delete(0, END)
-    if operacao == 'soma':
-          CampoNumeros.insert(0, PrimeiroNumero + float(PegaNumero))
-    elif operacao == 'subtracao':
-         CampoNumeros.insert(0, PrimeiroNumero - float(PegaNumero))
-    elif operacao == 'multiplicacao':
-         CampoNumeros.insert(0, PrimeiroNumero * float(PegaNumero))
-    elif operacao == 'divisao':
-         CampoNumeros.insert(0, PrimeiroNumero / float(PegaNumero))
-    elif operacao == 'porcentagem':
-         CampoNumeros.insert(0, (PrimeiroNumero * float(PegaNumero)) / 100)
-    elif operacao == 'potencia':
-         CampoNumeros.insert(0, PrimeiroNumero ** float(PegaNumero))
-    elif operacao == 'raiz':
-         CampoNumeros.insert(0, PrimeiroNumero ** 0.5)
-    return
-           
+# === ELEMENTOS UI ===
+label_local = tk.Label(tela, text="", font=("Helvetica", 16), bg="white")
+label_icone = tk.Label(tela, bg="white")
+label_temp = tk.Label(tela, font=("Helvetica", 48, "bold"), bg="white")
+label_desc = tk.Label(tela, font=("Helvetica", 20), bg="white")
+label_infos = tk.Label(tela, font=("Helvetica", 14), bg="white")
+label_alerta = tk.Label(tela, font=("Helvetica", 14, "bold"), bg="white", fg="red")
 
-'''Entry'''
+label_local.pack(pady=(10, 0))
+label_icone.pack()
+label_temp.pack()
+label_desc.pack()
+label_infos.pack(pady=(5, 5))
+label_alerta.pack()
 
-CampoNumeros = Entry(calculadora, width = 50)   
-CampoNumeros.place(x=100, y=25)
-CampoNumeros.focus_set()
-CampoNumeros.config(bg = "black", fg = "white", relief = FLAT)
-CampoNumeros.config(justify = "left")
-CampoNumeros.config(highlightbackground = "black")
-CampoNumeros.config(highlightcolor = "black")
-CampoNumeros.config(highlightthickness = 0)
+frame_grafico = tk.Frame(tela, bg="white")
+frame_grafico.pack(fill='both', expand=True)
 
-'''Botoes'''
+# === ATUALIZAR CLIMA ===
+def atualizar_clima():
+    try:
+        r = requests.get(URL_ATUAL)
+        d = r.json()
 
-BT1 = Button(calculadora, text = 1, relief = FLAT, width = 10, height = 3, bg = "black", fg = "white", command = lambda: BTNumeros(1))
-BT1.place(x=50, y=150)
+        if r.status_code != 200:
+            raise Exception(d.get("message", "Erro ao obter dados."))
 
-BT2 = Button(calculadora, text = 2, relief = FLAT, width = 10, height = 3, bg = "black", fg = "white", command = lambda: BTNumeros(2))
-BT2.place(x=150, y=150)
+        temp = d['main']['temp']
+        descricao = d['weather'][0]['description']
+        umidade = d['main']['humidity']
+        vento = d['wind']['speed']
+        chuva = d.get('rain', {}).get('1h', 0)
+        icone_id = d['weather'][0]['icon']
 
-BT3 = Button(calculadora, text = 3, relief = FLAT, width = 10, height = 3, bg = "black", fg = "white", command = lambda: BTNumeros(3))
-BT3.place(x=250, y=150)
+        label_local.config(text=f"{cidade}, {pais}")
+        label_temp.config(text=f"{temp:.1f} °C")
+        label_desc.config(text=descricao.capitalize())
+        label_infos.config(text=f"Chuva: {chuva:.0f}mm | Umidade: {umidade}% | Vento: {vento:.0f} km/h")
 
-BT4 = Button(calculadora, text = 4, relief = FLAT, width = 10, height = 3, bg = "black", fg = "white", command = lambda: BTNumeros(4))
-BT4.place(x=50, y=225)
+        # Ícone
+        icon_url = f"http://openweathermap.org/img/wn/{icone_id}@2x.png"
+        icon_data = Image.open(BytesIO(requests.get(icon_url).content))
+        icon_img = ImageTk.PhotoImage(icon_data)
+        label_icone.config(image=icon_img)
+        label_icone.image = icon_img
 
-BT5 = Button(calculadora, text = 5, relief = FLAT, width = 10, height = 3, bg = "black", fg = "white", command = lambda: BTNumeros(5))
-BT5.place(x=150, y=225)
+    except Exception as e:
+        messagebox.showerror("Erro", f"Não foi possível atualizar o clima:\n{e}")
 
-BT6 = Button(calculadora, text = 6, relief = FLAT, width = 10, height = 3, bg = "black", fg = "white", command = lambda: BTNumeros(6))
-BT6.place(x=250, y=225)
+# === GRÁFICO DE PREVISÃO ===
+def mostrar_grafico():
+    try:
+        r = requests.get(URL_FORECAST)
+        dados = r.json()
 
-BT7 = Button(calculadora, text = 7, relief = FLAT, width = 10, height = 3, bg = "black", fg = "white", command = lambda: BTNumeros(7))
-BT7.place(x=50, y=300)
+        if r.status_code != 200:
+            raise Exception(dados.get("message", "Erro ao obter previsão."))
 
-BT8 = Button(calculadora, text = 8, relief = FLAT, width = 10, height = 3, bg = "black", fg = "white", command = lambda: BTNumeros(8))
-BT8.place(x=150, y=300)
+        previsoes = dados['list'][:8]
 
-BT9 = Button(calculadora, text = 9, relief = FLAT, width = 10, height = 3, bg = "black", fg = "white", command = lambda: BTNumeros(9))
-BT9.place(x=250, y=300)
+        horas = [p['dt_txt'][11:16] for p in previsoes]
+        temps = [p['main']['temp'] for p in previsoes]
+        chuvas = [p.get('pop', 0) * 100 for p in previsoes]
 
-BT0 = Button(calculadora, text = 0, relief = FLAT, width = 10, height = 3, bg = "black", fg = "white", command = lambda: BTNumeros(0))
-BT0.place(x=150, y=375)
+        fig, ax1 = plt.subplots(figsize=(9, 4))
 
-BTPonto = Button(calculadora, text = ".", relief = FLAT, width = 10, height = 3, bg = "black", fg = "white", command = lambda: BTNumeros('.'))
-BTPonto.place(x=50, y=375)
+        ax1.bar(horas, chuvas, color='skyblue', alpha=0.4, label='Chuva (%)')
+        ax2 = ax1.twinx()
+        ax2.plot(horas, temps, color='orange', marker='o', label='Temperatura (\u00b0C)')
 
-BTIgual = Button(calculadora, text = "=", relief = FLAT, width = 10, height = 3, bg = "black", fg = "white", command = igual)
-BTIgual.place(x=250, y=375)
+        for i, (x, y) in enumerate(zip(horas, temps)):
+            ax2.text(i, y + 0.5, f"{y:.0f}°", ha='center', fontsize=8, color='darkorange')
 
-BTDivisao = Button(calculadora, text = "/", relief = FLAT, width = 10, height = 3, bg = "black", fg = "white", command = divisao)
-BTDivisao.place(x=350, y=150)
+        alerta = ""
+        if any(c >= 70 for c in chuvas):
+            alerta = "\u26a0\ufe0f Tempestade a caminho! Leve guarda-chuva."
+        elif any(50 <= c < 70 for c in chuvas):
+            alerta = "\u2614 Pode chover mais tarde, fique atento."
+        elif all(c <= 20 for c in chuvas):
+            alerta = "☀ Clima estável hoje. Aproveite!"
 
-BTMultiplicacao = Button(calculadora, text = "*", relief = FLAT, width = 10, height = 3, bg = "black", fg = "white", command = multiplicacao)
-BTMultiplicacao.place(x=350, y=225)
+        label_alerta.config(text=alerta)
 
-BTSoma = Button(calculadora, text = "+", relief = FLAT, width = 10, height = 3, bg = "black", fg = "white", command = soma)
-BTSoma.place(x=350, y=300)
+        ax1.set_xlabel('Hora')
+        ax1.set_ylabel('Chuva (%)', color='blue')
+        ax2.set_ylabel('Temperatura (°C)', color='orange')
+        fig.suptitle('Próximas horas')
 
-BTSubtracao = Button(calculadora, text = "-", relief = FLAT, width = 10, height = 3, bg = "black", fg = "white", command = subtracao)
-BTSubtracao.place(x=350, y=375)
+        ax1.set_ylim(0, 100)
+        ax2.set_ylim(min(temps)-2, max(temps)+2)
+        ax1.tick_params(axis='x', rotation=45)
 
-BTC = Button(calculadora, text = "C", relief = FLAT, width = 10, height = 3, bg = "black", fg = "white", command = lambda: CampoNumeros.delete(0, END))
-BTC.place(x=50, y=75)
+        canvas = FigureCanvasTkAgg(fig, master=frame_grafico)
+        canvas.draw()
+        canvas.get_tk_widget().pack(fill='both', expand=True)
 
-BTPorcentagem = Button(calculadora, text = "%", relief = FLAT, width = 10, height = 3, bg = "black", fg = "white", command = porcentagem)
-BTPorcentagem.place(x=150, y=75)
+    except Exception as e:
+        messagebox.showerror("Erro", f"Erro ao gerar gráfico:\n{e}")
 
-BTPotencia = Button(calculadora, text = "x²", relief = FLAT, width = 10, height = 3, bg = "black", fg = "white", command = potencia)
-BTPotencia.place(x=250, y=75)
-
-BTRaiz = Button(calculadora, text = "√", relief = FLAT, width = 10, height = 3, bg = "black", fg = "white", command = raiz)
-BTRaiz.place(x=350, y=75)
-
-
-
-
-calculadora.mainloop()
+# === EXECUTAR ===
+tela.bind("<Escape>" or "<F12>", sair_fullscreen)
+tela.bind("<F12>", fulltela)
+atualizar_clima()
+mostrar_grafico()
+tela.mainloop()
