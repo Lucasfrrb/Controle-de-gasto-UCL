@@ -131,7 +131,7 @@ def mostrar_grafico():
 
 # === EXECUTAR ===
 tela.bind("<Escape>" or "<F12>", sair_fullscreen)
-tela.bind("<F12>", fulltela)
+tela.bind("<F11>", fulltela)
 atualizar_clima()
 mostrar_grafico()
 tela.mainloop()
